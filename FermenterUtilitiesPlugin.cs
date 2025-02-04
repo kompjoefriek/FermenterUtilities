@@ -50,9 +50,9 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	private static string GetColorStringFromPercentage(double percentage)
 	{
 		if (!_configShowColorPercentage.Value) return "white";
-		if (percentage >= 75) return "green";
-		if (percentage >= 50) return "yellow";
-		if (percentage >= 25) return "orange";
+		if (percentage >= 75.0) return "green";
+		if (percentage >= 50.0) return "yellow";
+		if (percentage >= 25.0) return "orange";
 		return "red";
 	}
 
@@ -63,9 +63,9 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 
 	private static string FormatMinutesAsString(double minutes)
 	{
-		int hours = (int)(minutes / 60);
-		int mins = (int)(minutes % 60);
-		int secs = (int)((minutes - Math.Floor(minutes)) * 60);
+		int hours = (int)(minutes / 60.0);
+		int mins = (int)(minutes % 60.0);
+		int secs = (int)((minutes - Math.Floor(minutes)) * 60.0);
 		if (hours > 1) return $"{hours:D2}:{mins:D2}:{secs:D2}";
 		return $"{mins:D2}:{secs:D2}";
 	}
@@ -74,6 +74,8 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	[HarmonyPatch(typeof(Fermenter), "Awake")]
 	public static void FermenterAwake_Patch(Fermenter __instance)
 	{
+		if (__instance == null) return;
+
 		if (_configCustomFermentTime.Value) __instance.m_fermentationDuration = _configNewFermentTime.Value * 60;
 		if (_configNoCover.Value) Traverse.Create(__instance).Field("m_updateCoverTimer").SetValue(-100f);
 	}
@@ -83,22 +85,23 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	public static string FermenterGetHoverText_Patch(string __result, Fermenter __instance)
 	{
 		if (__instance == null) return __result;
-		object fermentingStatus = __instance.GetType().GetNestedType("Status", BindingFlags.NonPublic).GetField("Fermenting").GetValue(__instance);
-		if (_configShowPercentage.Value && Traverse.Create(__instance).Method("GetStatus").GetValue<object>() == fermentingStatus)
+
+		object STATUS_FERMENTING = __instance.GetType().GetNestedType("Status", BindingFlags.NonPublic).GetField("Fermenting").GetValue(__instance);
+		object fermenterStatus = Traverse.Create(__instance).Method("GetStatus").GetValue<object>();
+		if (_configShowPercentage.Value && fermenterStatus.Equals(STATUS_FERMENTING))
 		{
-			string replaceString = Localization.instance.Localize("$piece_fermenter_fermenting");
 			double fermentationTime = Traverse.Create(__instance).Method("GetFermentationTime").GetValue<double>();
-			double percentage = fermentationTime / __instance.m_fermentationDuration * 100;
+			double percentage = fermentationTime / __instance.m_fermentationDuration * 100.0;
 			string color = GetColorStringFromPercentage(percentage);
 			string newString = GetValueAsColoredString(color, Math.Round(percentage, _configAmountOfDecimals.Value, MidpointRounding.AwayFromZero));
 
 			if (_configShowTime.Value)
 			{
-				double timeRemaining = __instance.m_fermentationDuration - fermentationTime;
-				string stringTimeRemaining = FormatMinutesAsString(timeRemaining);
-				newString += $", {stringTimeRemaining}";
+				double timeRemaining = (__instance.m_fermentationDuration - fermentationTime) / 60.0;
+				newString += $", {FormatMinutesAsString(timeRemaining)}";
 			}
 
+			string replaceString = Localization.instance.Localize("$piece_fermenter_fermenting");
 			return __result.Replace(replaceString, newString);
 		}
 
