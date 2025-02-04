@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
     <AssemblyName>FermenterUtilities</AssemblyName>
-    <Product>Show Plant Progress</Product>
-    <Version>1.5.0</Version>
+    <Product></Product>
+    <Version>1.1.0</Version>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -13,8 +13,9 @@
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
     <RootNamespace>FermenterUtilities</RootNamespace>
-    <Copyright>Copyright © 2024  KompjoeFriek</Copyright>
+    <Copyright>Copyright © 2025  KompjoeFriek</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Fermenter Utilities</Description>
   </PropertyGroup>
 
   <ItemGroup>

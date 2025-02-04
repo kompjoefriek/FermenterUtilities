@@ -1,8 +1,12 @@
 # Fermenter Utilities
 A few customisation options for fermenters including percentage progress, not requiring cover and custom fermentation time
 
+## Automatic Installation
+R2ModMan: https://r2modman.com/
+
 ## Manual Installation
-To install this mod, you need to have BepInEx. After installing BepInEx, extract FermenterUtilities.dll into games install **"\Valheim\BepInEx\plugins"**
+To install this mod, you need to have BepInEx: https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/
+After installing BepInEx, extract FermenterUtilities.dll into games install **"\Valheim\BepInEx\plugins"**
 
 #### There are serveral config options available;
 
@@ -15,8 +19,9 @@ To install this mod, you need to have BepInEx. After installing BepInEx, extract
 | Config Option | Type | Default Value | Description |
 |:-----------:|:-----------:|:-----------:|:-----------|
 | Show Percentage | bool | true | Shows the fermentation progress as a percentage when you hover over the fermenter |
-| Show Colour Percentage | bool | true | Makes it so the percentage changes colour depending on the progress |
-| Decimal Places | int | 0 | Amount of decimal places to display on the percentage if you want more detail |
+| Show Color Percentage | bool | true | Makes it so the percentage changes color depending on the progress |
+| Decimal Places | int | 2 | Amount of decimal places to display on the percentage if you want more detail |
+| Show Time | bool | false | Show the time when done |
 
 ## Time;
 | Config Option | Type | Default Value | Description |
