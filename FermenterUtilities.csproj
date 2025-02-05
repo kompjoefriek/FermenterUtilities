@@ -4,7 +4,7 @@
     <TargetFramework>net462</TargetFramework>
     <AssemblyName>FermenterUtilities</AssemblyName>
     <Product></Product>
-    <Version>1.1.0</Version>
+    <Version>1.1.2</Version>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -16,6 +16,9 @@
     <Copyright>Copyright © 2025  KompjoeFriek</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>Fermenter Utilities</Description>
+    <PackageTags>mod;valheim</PackageTags>
+    <RepositoryUrl>https://github.com/kompjoefriek/FermenterUtilities</RepositoryUrl>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +36,10 @@
 
   <ItemGroup>
     <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="thunderstore\icon.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

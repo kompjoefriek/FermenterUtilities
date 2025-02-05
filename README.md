@@ -8,28 +8,29 @@ R2ModMan: https://r2modman.com/
 To install this mod, you need to have BepInEx: https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/
 After installing BepInEx, extract FermenterUtilities.dll into games install **"\Valheim\BepInEx\plugins"**
 
-#### There are serveral config options available;
+## Config
 
-## Main Toggles;
+### Global;
 | Config Option | Type | Default Value | Description |
 |:-------------:|:-----------:|:-----------:|:-----------|
 | Enable Mod | bool | true | Enable or disable the mod |
+| Enable Logging | bool | true | Enable or disable logging for this mod |
 
-## Percentage;
+### Progress;
 | Config Option | Type | Default Value | Description |
 |:-----------:|:-----------:|:-----------:|:-----------|
 | Show Percentage | bool | true | Shows the fermentation progress as a percentage when you hover over the fermenter |
-| Show Color Percentage | bool | true | Makes it so the percentage changes color depending on the progress |
-| Decimal Places | int | 2 | Amount of decimal places to display on the percentage if you want more detail |
+| Show Percentage Color | bool | true | Makes it so the percentage changes color depending on the progress |
+| Show Percentage Decimal Places | int | 2 | The amount of decimal places to show for the percentage |
 | Show Time | bool | false | Show the time when done |
 
-## Time;
+### Time;
 | Config Option | Type | Default Value | Description |
 |:-----------:|:-----------:|:-----------:|:-----------|
 | Custom Time | bool | false | Enables the custom time for fermentation |
 | Fermentation Time | int | 5 | The amount of minutes fermentation takes (Default 40) |
 
-## Cover;
+### Cover;
 | Config Option | Type | Default Value | Description |
 |:-----------:|:-----------:|:-----------:|:-----------|
 | Work Without Cover | bool | false | Allow the Fermenter to work without any cover |

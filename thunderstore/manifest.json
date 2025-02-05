@@ -1,6 +1,6 @@
 {
   "name": "FermenterUtilities",
-  "version_number": "1.1.0",
+  "version_number": "1.1.2",
   "website_url": "https://github.com/kompjoefriek/FermenterUtilities",
   "description": "A few customisation options for fermenters including percentage progress, not requiring cover and custom fermentation time",
   "dependencies": [

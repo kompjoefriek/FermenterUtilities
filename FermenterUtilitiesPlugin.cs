@@ -2,9 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using Steamworks;
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace FermenterUtilities;
@@ -13,13 +11,16 @@ namespace FermenterUtilities;
 [HarmonyPatch]
 public class FermenterUtilitiesPlugin : BaseUnityPlugin
 {
-	internal const string _modVersion = "1.1.0";
+	internal const string _modVersion = "1.1.2";
 	internal const string _modDescription = "Fermenter Utilities";
 	internal const string _modUid = "kompjoefriek.FermenterUtilities";
 
 	internal static new ManualLogSource Logger;
 
+	private Harmony _harmony;
+
 	private static ConfigEntry<bool> _configEnableMod;
+	private static ConfigEntry<bool> _configEnableLogging;
 	private static ConfigEntry<bool> _configShowPercentage;
 	private static ConfigEntry<bool> _configShowColorPercentage;
 	private static ConfigEntry<bool> _configShowTime;
@@ -28,15 +29,19 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	private static ConfigEntry<int> _configAmountOfDecimals;
 	private static ConfigEntry<int> _configNewFermentTime;
 
+	private static object _logObject;
+	private static DateTime _lastLogTime;
+
 	private void Awake()
 	{
 		Logger = base.Logger;
+
 		_configEnableMod = Config.Bind("1 - Global", "Enable Mod", true, "Enable or disable this mod");
-		if (!_configEnableMod.Value) { return; }
+		_configEnableLogging = Config.Bind("1 - Global", "Enable Logging", false, "Enable or disable logging for this mod");
 
 		_configShowPercentage = Config.Bind("2 - Progress", "Show Percentage", true, "Shows the fermentation progress as a percentage when you hover over the fermenter");
-		_configShowColorPercentage = Config.Bind("2 - Progress", "Show Color Percentage", true, "Makes it so the percentage changes color depending on the progress");
-		_configAmountOfDecimals = Config.Bind("2 - Progress", "Amount of Decimal Places", 2, "The amount of decimal places to show");
+		_configShowColorPercentage = Config.Bind("2 - Progress", "Show Percentage Color", true, "Makes it so the percentage changes color depending on the progress");
+		_configAmountOfDecimals = Config.Bind("2 - Progress", "Show Percentage Decimal Places", 2, "The amount of decimal places to show for the percentage");
 		_configShowTime = Config.Bind("2 - Progress", "Show Time", false, "Show the time when done");
 
 		_configCustomFermentTime = Config.Bind("3 - Time", "Custom Time", false, "Enables the custom time for fermentation");
@@ -44,7 +49,38 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 
 		_configNoCover = Config.Bind("4 - Cover", "Work Without Cover", false, "Allow the Fermenter to work without any cover");
 
-		Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
+		// Deprecated config
+		bool hasDeprecatedConfigShowColorPercentage = Config.TryGetEntry<bool>("2 - Progress", "Show Color Percentage", out ConfigEntry<bool> deprecatedConfigShowColorPercentage);
+		bool hasDeprecatedConfigAmountOfDecimals = Config.TryGetEntry<int>("2 - Progress", "Amount of Decimal Places", out ConfigEntry<int> deprecatedConfigAmountOfDecimals);
+		if (hasDeprecatedConfigShowColorPercentage)
+		{
+			_configShowColorPercentage.Value = deprecatedConfigShowColorPercentage.Value;
+			Logger.LogInfo("Removing deprecated config: " + deprecatedConfigShowColorPercentage.Definition.ToString());
+			if (!Config.Remove(deprecatedConfigShowColorPercentage.Definition))
+			{
+				Logger.LogWarning("Failed to remove deprecated config: " + deprecatedConfigShowColorPercentage.Definition.ToString());
+			}
+		}
+		if (hasDeprecatedConfigAmountOfDecimals)
+		{
+			_configAmountOfDecimals.Value = deprecatedConfigAmountOfDecimals.Value;
+			Logger.LogInfo("Removing deprecated config: " + deprecatedConfigAmountOfDecimals.Definition.ToString());
+			if (!Config.Remove(deprecatedConfigAmountOfDecimals.Definition))
+			{
+				Logger.LogWarning("Failed to remove deprecated config: " + deprecatedConfigAmountOfDecimals.Definition.ToString());
+			}
+		}
+
+		_lastLogTime = DateTime.Now;
+
+		if (!_configEnableMod.Value) { return; }
+
+		_harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
+	}
+
+	private void OnDestroy()
+	{
+		_harmony?.UnpatchSelf();
 	}
 
 	private static string GetColorStringFromPercentage(double percentage)
@@ -61,13 +97,36 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 		return $"<color={color}>{value}%</color>";
 	}
 
-	private static string FormatMinutesAsString(double minutes)
+	private static string FormatSecondsAsString(double seconds)
 	{
-		int hours = (int)(minutes / 60.0);
-		int mins = (int)(minutes % 60.0);
-		int secs = (int)((minutes - Math.Floor(minutes)) * 60.0);
+		int hours = (int)(seconds / 3600.0);
+		double remainingSeconds = seconds - (hours * 3600.0);
+		int mins = (int)(remainingSeconds / 60.0);
+		remainingSeconds -= mins * 60.0;
+		int secs = (int)(remainingSeconds);
 		if (hours > 1) return $"{hours:D2}:{mins:D2}:{secs:D2}";
 		return $"{mins:D2}:{secs:D2}";
+	}
+
+	// Log message at Info log level, but only once per second for the same object
+	private static void LogInfoThrottled(object obj, string message)
+	{
+		if (object.Equals(_logObject, obj))
+		{
+			double secondsSinceLastLog = (DateTime.Now - _lastLogTime).TotalSeconds;
+			if (secondsSinceLastLog >= 1)
+			{
+				_logObject = obj;
+				_lastLogTime = DateTime.Now;
+				Logger.LogInfo(message);
+			}
+		}
+		else
+		{
+			_logObject = obj;
+			_lastLogTime = DateTime.Now;
+			Logger.LogInfo(message);
+		}
 	}
 
 	[HarmonyPostfix]
@@ -88,21 +147,46 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 
 		object STATUS_FERMENTING = __instance.GetType().GetNestedType("Status", BindingFlags.NonPublic).GetField("Fermenting").GetValue(__instance);
 		object fermenterStatus = Traverse.Create(__instance).Method("GetStatus").GetValue<object>();
-		if (_configShowPercentage.Value && fermenterStatus.Equals(STATUS_FERMENTING))
+		if (!fermenterStatus.Equals(STATUS_FERMENTING)) return __result;
+
+		if (_configShowPercentage.Value)
 		{
 			double fermentationTime = Traverse.Create(__instance).Method("GetFermentationTime").GetValue<double>();
-			double percentage = fermentationTime / __instance.m_fermentationDuration * 100.0;
+
+			// Don't change hover text when item is done
+			if (fermentationTime >= __instance.m_fermentationDuration) return __result;
+
+			double percentage = (fermentationTime / __instance.m_fermentationDuration) * 100.0;
 			string color = GetColorStringFromPercentage(percentage);
 			string newString = GetValueAsColoredString(color, Math.Round(percentage, _configAmountOfDecimals.Value, MidpointRounding.AwayFromZero));
+			string logMessage = "Fermenter percentage: " + percentage + ", time since start: " + fermentationTime + ", fermentation duration: " + __instance.m_fermentationDuration;
 
 			if (_configShowTime.Value)
 			{
-				double timeRemaining = (__instance.m_fermentationDuration - fermentationTime) / 60.0;
-				newString += $", {FormatMinutesAsString(timeRemaining)}";
+				double timeRemaining = __instance.m_fermentationDuration - fermentationTime;
+				string formattedTime = FormatSecondsAsString(timeRemaining);
+				newString += ", " + formattedTime;
+				logMessage += "\nFermenter timeRemaining: " + timeRemaining + " (seconds), formatted: " + formattedTime;
 			}
+			LogInfoThrottled(__instance, logMessage);
 
 			string replaceString = Localization.instance.Localize("$piece_fermenter_fermenting");
 			return __result.Replace(replaceString, newString);
+		}
+		else if (_configShowTime.Value)
+		{
+			double fermentationTime = Traverse.Create(__instance).Method("GetFermentationTime").GetValue<double>();
+
+			// Don't change hover text when item is done
+			if (fermentationTime >= __instance.m_fermentationDuration) return __result;
+
+			double timeRemaining = __instance.m_fermentationDuration - fermentationTime;
+			string formattedTime = FormatSecondsAsString(timeRemaining);
+
+			LogInfoThrottled(__instance, "Fermenter timeRemaining: " + timeRemaining + " (seconds), formatted: " + formattedTime);
+
+			string replaceString = Localization.instance.Localize("$piece_fermenter_fermenting");
+			return __result.Replace(replaceString, formattedTime);
 		}
 
 		return __result;
