@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace FermenterUtilities;
@@ -36,8 +37,9 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	{
 		Logger = base.Logger;
 
+		// Normal configs
 		_configEnableMod = Config.Bind("1 - Global", "Enable Mod", true, "Enable or disable this mod");
-		_configEnableLogging = Config.Bind("1 - Global", "Enable Logging", false, "Enable or disable logging for this mod");
+		_configEnableLogging = Config.Bind("1 - Global", "Enable Mod Logging", false, "Enable or disable logging for this mod");
 
 		_configShowPercentage = Config.Bind("2 - Progress", "Show Percentage", true, "Shows the fermentation progress as a percentage when you hover over the fermenter");
 		_configShowColorPercentage = Config.Bind("2 - Progress", "Show Percentage Color", true, "Makes it so the percentage changes color depending on the progress");
@@ -50,24 +52,37 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 		_configNoCover = Config.Bind("4 - Cover", "Work Without Cover", false, "Allow the Fermenter to work without any cover");
 
 		// Deprecated config
-		bool hasDeprecatedConfigShowColorPercentage = Config.TryGetEntry<bool>("2 - Progress", "Show Color Percentage", out ConfigEntry<bool> deprecatedConfigShowColorPercentage);
-		bool hasDeprecatedConfigAmountOfDecimals = Config.TryGetEntry<int>("2 - Progress", "Amount of Decimal Places", out ConfigEntry<int> deprecatedConfigAmountOfDecimals);
-		if (hasDeprecatedConfigShowColorPercentage)
+		Dictionary<ConfigDefinition, string> orphanedEntries = Traverse.Create(Config).Property("OrphanedEntries").GetValue<Dictionary<ConfigDefinition, string>>();
+		if (orphanedEntries != null)
 		{
-			_configShowColorPercentage.Value = deprecatedConfigShowColorPercentage.Value;
-			Logger.LogInfo("Removing deprecated config: " + deprecatedConfigShowColorPercentage.Definition.ToString());
-			if (!Config.Remove(deprecatedConfigShowColorPercentage.Definition))
+			ConfigDefinition deprecatedConfigShowColorPercentageDefinition = new ConfigDefinition("2 - Progress", "Show Color Percentage");
+			ConfigDefinition deprecatedConfigAmountOfDecimalsDefinition = new ConfigDefinition("2 - Progress", "Amount of Decimal Places");
+			bool hasDeprecatedConfigShowColorPercentage = orphanedEntries.TryGetValue(deprecatedConfigShowColorPercentageDefinition, out string deprecatedConfigShowColorPercentageValue);
+			bool hasDeprecatedConfigAmountOfDecimals = orphanedEntries.TryGetValue(deprecatedConfigAmountOfDecimalsDefinition, out string deprecatedConfigAmountOfDecimalsValue);
+
+			bool didConfigChange = false;
+			if (hasDeprecatedConfigShowColorPercentage)
 			{
-				Logger.LogWarning("Failed to remove deprecated config: " + deprecatedConfigShowColorPercentage.Definition.ToString());
+				_configShowColorPercentage.SetSerializedValue(deprecatedConfigShowColorPercentageValue);
+				didConfigChange |= RemoveDeprecatedConfigDefinition(ref orphanedEntries, deprecatedConfigShowColorPercentageDefinition);
 			}
-		}
-		if (hasDeprecatedConfigAmountOfDecimals)
-		{
-			_configAmountOfDecimals.Value = deprecatedConfigAmountOfDecimals.Value;
-			Logger.LogInfo("Removing deprecated config: " + deprecatedConfigAmountOfDecimals.Definition.ToString());
-			if (!Config.Remove(deprecatedConfigAmountOfDecimals.Definition))
+			if (hasDeprecatedConfigAmountOfDecimals)
 			{
-				Logger.LogWarning("Failed to remove deprecated config: " + deprecatedConfigAmountOfDecimals.Definition.ToString());
+				_configAmountOfDecimals.SetSerializedValue(deprecatedConfigAmountOfDecimalsValue);
+				didConfigChange |= RemoveDeprecatedConfigDefinition(ref orphanedEntries, deprecatedConfigAmountOfDecimalsDefinition);
+			}
+
+			if (_configEnableLogging.Value)
+			{
+				foreach (KeyValuePair<ConfigDefinition, string> entry in orphanedEntries)
+				{
+					Logger.LogWarning("Orphaned config: " + entry.Key.ToString());
+				}
+			}
+
+			if (didConfigChange)
+			{
+				Config.Save();
 			}
 		}
 
@@ -81,6 +96,16 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	private void OnDestroy()
 	{
 		_harmony?.UnpatchSelf();
+	}
+
+	private static bool RemoveDeprecatedConfigDefinition(ref Dictionary<ConfigDefinition, string> entries, ConfigDefinition definition)
+	{
+		if (!entries.Remove(definition))
+		{
+			Logger.LogWarning("Failed to remove deprecated config: " + definition.ToString());
+			return false;
+		}
+		return true;
 	}
 
 	private static string GetColorStringFromPercentage(double percentage)
@@ -111,21 +136,24 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	// Log message at Info log level, but only once per second for the same object
 	private static void LogInfoThrottled(object obj, string message)
 	{
-		if (object.Equals(_logObject, obj))
+		if (_configEnableLogging.Value)
 		{
-			double secondsSinceLastLog = (DateTime.Now - _lastLogTime).TotalSeconds;
-			if (secondsSinceLastLog >= 1)
+			if (object.Equals(_logObject, obj))
+			{
+				double secondsSinceLastLog = (DateTime.Now - _lastLogTime).TotalSeconds;
+				if (secondsSinceLastLog >= 1)
+				{
+					_logObject = obj;
+					_lastLogTime = DateTime.Now;
+					Logger.LogInfo(message);
+				}
+			}
+			else
 			{
 				_logObject = obj;
 				_lastLogTime = DateTime.Now;
 				Logger.LogInfo(message);
 			}
-		}
-		else
-		{
-			_logObject = obj;
-			_lastLogTime = DateTime.Now;
-			Logger.LogInfo(message);
 		}
 	}
 
