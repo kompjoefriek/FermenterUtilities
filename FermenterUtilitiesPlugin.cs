@@ -12,7 +12,7 @@ namespace FermenterUtilities;
 [HarmonyPatch]
 public class FermenterUtilitiesPlugin : BaseUnityPlugin
 {
-	internal const string _modVersion = "1.1.2";
+	internal const string _modVersion = "1.1.3";
 	internal const string _modDescription = "Fermenter Utilities";
 	internal const string _modUid = "kompjoefriek.FermenterUtilities";
 
@@ -129,7 +129,7 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 		int mins = (int)(remainingSeconds / 60.0);
 		remainingSeconds -= mins * 60.0;
 		int secs = (int)(remainingSeconds);
-		if (hours > 1) return $"{hours:D2}:{mins:D2}:{secs:D2}";
+		if (hours >= 1) return $"{hours:D2}:{mins:D2}:{secs:D2}";
 		return $"{mins:D2}:{secs:D2}";
 	}
 

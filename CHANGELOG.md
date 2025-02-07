@@ -1,4 +1,6 @@
 # Changelog
+## v1.1.3 (in development)
+- Time now includes hours when there is only a single hour to display
 ## v1.1.2
 - Changed formatting time from minutes to seconds
 - Show only time when show percentage is disabled and show time is enabled
