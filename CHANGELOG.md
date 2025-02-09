@@ -1,5 +1,5 @@
 # Changelog
-## v1.1.3 (in development)
+## v1.1.3
 - Time now includes hours when there is only a single hour to display
 ## v1.1.2
 - Changed formatting time from minutes to seconds
