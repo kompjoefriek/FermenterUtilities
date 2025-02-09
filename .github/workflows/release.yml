@@ -9,7 +9,6 @@ on:
 
 env:
   MOD_NAME: FermenterUtilities
-  MOD_DESC: A few customisation options for fermenters including percentage progress, not requiring cover and custom fermentation time.
   PACKAGE_NAME: FermenterUtilities_${{ github.ref_name }}.zip
 
 jobs:
@@ -145,7 +144,6 @@ jobs:
         namespace: KompjoeFriek # the thunderstore 'team' to publish under
         token: ${{ secrets.THUNDERSTORE_TOKEN }}
         name: ${{ env.MOD_NAME }} # the name of the package
-        description: ${{ env.MOD_DESC }} # the name of the package
         version: ${{ github.ref_name }} # Use the tag as the package version
         file: ${{ env.PACKAGE_NAME }}
         community: valheim
