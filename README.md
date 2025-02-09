@@ -49,4 +49,4 @@ Installed VS2022 with:
 Workloads:
 - .NET desktop environment
 Individual components:
-- .NET Framework 4.6.2
+- .NET Framework 8.0.x
