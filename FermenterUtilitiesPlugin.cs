@@ -12,7 +12,7 @@ namespace FermenterUtilities;
 [HarmonyPatch]
 public class FermenterUtilitiesPlugin : BaseUnityPlugin
 {
-	internal const string _modVersion = "1.1.3";
+	internal const string _modVersion = "1.1.4";
 	internal const string _modDescription = "Fermenter Utilities";
 	internal const string _modUid = "kompjoefriek.FermenterUtilities";
 
@@ -86,6 +86,9 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 			}
 		}
 
+		// Respond to config changes
+		Config.SettingChanged += OnConfigChanged;
+
 		_lastLogTime = DateTime.Now;
 
 		if (!_configEnableMod.Value) { return; }
@@ -96,6 +99,31 @@ public class FermenterUtilitiesPlugin : BaseUnityPlugin
 	private void OnDestroy()
 	{
 		_harmony?.UnpatchSelf();
+		_harmony = null;
+	}
+
+	private void OnConfigChanged(Object sender, SettingChangedEventArgs e)
+	{
+		if (e.ChangedSetting.Definition.Equals(_configEnableMod.Definition))
+		{
+			if (_configEnableMod.Value)
+			{
+				if (_harmony != null && Harmony.HasAnyPatches(_harmony.Id))
+				{
+					Logger.LogWarning("Mod is already patched before enabling. Unpatching now...");
+					_harmony.UnpatchSelf();
+					_harmony = null;
+				}
+				_harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
+				Logger.LogInfo("Mod enabled");
+			}
+			else
+			{
+				_harmony?.UnpatchSelf();
+				_harmony = null;
+				Logger.LogInfo("Mod disabled");
+			}
+		}
 	}
 
 	private static bool RemoveDeprecatedConfigDefinition(ref Dictionary<ConfigDefinition, string> entries, ConfigDefinition definition)

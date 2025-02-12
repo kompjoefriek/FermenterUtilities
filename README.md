@@ -1,7 +1,7 @@
 # Fermenter Utilities
 A few customisation options for fermenters including percentage progress, not requiring cover and custom fermentation time
 
-![icon](thunderstore/icon.png "icon")
+![](thunderstore/icon.png)
 
 ## Automatic Installation
 R2ModMan: https://r2modman.com/
